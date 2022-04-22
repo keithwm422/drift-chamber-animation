@@ -11,20 +11,21 @@ class ChargeSource:
 class ElectricField:
     def __init__(self):
         self.charges = [
-                ChargeSource(-1, np.array([2,0,0])),
-                ChargeSource(+1, np.array([-2,0,0]))
-                ]
-                # ChargeSource(-1, np.array([2,2,0])),
-                # ChargeSource(+1, np.array([-2,2,0])),
-                # ChargeSource(-1, np.array([2,-2,0])),
-                # ChargeSource(+1, np.array([-2,-2,0])),
+                ChargeSource(-2, np.array([2,0])),
+                ChargeSource(+2, np.array([-2,0]))]
+                #ChargeSource(-1, np.array([2,2,0])),
+                #ChargeSource(+1, np.array([-2,2,0])),
+                #ChargeSource(-1, np.array([2,-2,0])),
+                #ChargeSource(+1, np.array([-2,-2,0]))
+                #]
 
     def field_at(self, vector):
         # takes a 3 dimensional np array
-        field = np.zeros(3)
+        field = np.zeros(2)
         for charge in self.charges:
-            distance = np.linalg.norm(charge.position - vector)
-            field += charge.charge/distance**2 * (vector - charge.position)
+            distance = np.linalg.norm(charge.position - vector[:2])
+            # 1/r^1 because these are wires, not points
+            field += charge.charge/distance**2 * (vector[:2] - charge.position)
         return field 
 
 
@@ -34,7 +35,7 @@ class Particle(Circle):
         self.set_fill(color, opacity=1)
         self.text = Text(label, font_size=24)
         self.add(self.text)
-        self.v = np.zeros(3)
+        self.v = np.zeros(2)
         self.mass = mass
         self.jitter_size = 0.2
 
@@ -44,19 +45,29 @@ class Particle(Circle):
 
     def update_position(self, mobj, dt):
         # replace with if near wire...
-        if(mobj.get_x() < -10 or mobj.get_x() > 10):
-            mobj.v = 0
+        if(mobj.get_x() < -10 or mobj.get_x() > 10 
+                or mobj.near_wire()):
+            mobj.v = np.zeros(2)
             mobj.remove_updater(mobj.update_position)
         else:
-            jitter_probability = 10*dt
+            jitter_probability = 0*dt
             if (np.random.uniform() < jitter_probability):
-                jitter = self.jitter_size/self.mass*np.append(np.random.uniform(low=-1,size=2), 0)
+                jitter = self.jitter_size/self.mass*np.append(np.random.uniform(low=-1,size=2))
             else:
-                jitter = np.zeros(3)
+                jitter = np.zeros(2)
 
             a = 1/self.mass * self.field.field_at(self.get_center())
             mobj.v = mobj.v + a*dt + jitter
-            mobj.shift(mobj.v * dt)
+            mobj.shift(np.append(mobj.v * dt,0))
+
+    def near_wire(self):
+        thresh = 0.2
+        for x, y in [(-2,0), (2,0)]:
+            dx = np.abs(self.get_x() - x)
+            dy = np.abs(self.get_y() - y)
+            if (dx < thresh and dy < thresh):
+                return True
+        return False
 
 
 class EventParticle(Particle):
@@ -72,7 +83,7 @@ class EventParticle(Particle):
     def update_position(self, mobj, dt):
         # replace with if near wire...
         if(mobj.get_y() < -5):
-            mobj.v = 0
+            mobj.v = np.zeros(3)
             mobj.remove_updater(mobj.update_position)
         else:
             a = np.zeros(3)
@@ -82,7 +93,7 @@ class EventParticle(Particle):
 
 class CreateCircle(Scene):
     def construct(self):
-        e_field = ElectricField()
+        self.e_field = ElectricField()
         # constuct detector
         sense_wire = Circle(radius=0.1).shift(2* LEFT)
         sense_wire.set_fill(BLACK, opacity=1.0)
@@ -91,33 +102,41 @@ class CreateCircle(Scene):
 
         self.add(sense_wire)
         self.add(cathode_wire)
-
-        num_electrons = 9
-        electrons = []
-        for i in range(num_electrons):
-            electron = Particle(label="-", color=RED, mass=-2, radius=0.1)
-            electron.shift((i-5)/3.0*UP)
-            electron.add_field(e_field)
-            electrons.append(electron)
-
-        num_ions = 6
-        ions = []
-        for i in range(num_ions):
-            ion = Particle(label="+", color=PURPLE, mass=10)
-            ion.shift((i-3)/2.0*UP)
-            ion.add_field(e_field)
-            ions.append(ion)
-
-        be10 = EventParticle()
         self.wait()
 
-        be10.start()
-        self.add(be10)
-        self.wait(1)
-        for electron in electrons:
-            self.add(electron)
-        for ion in ions:
-            self.add(ion)
+        # run particle event
+        be10 = EventParticle().set_z_index(3)
+        self.electrons = []
+        self.ions = []
 
-        self.wait(10)
+        be10.add_updater(self.update_be)
+        self.add(be10)
+        self.wait(12)
+
+    def update_be(self, mobj, dt):
+        if(mobj.get_y() < -10):
+            mobj.v = np.zeros(3)
+            mobj.remove_updater(mobj.update_position)
+        else:
+            a = np.zeros(3)
+            mobj.v = mobj.v + a*dt 
+            mobj.shift(mobj.v * dt)
+
+            p_particle = 5
+            prob = p_particle * dt
+            if (np.random.uniform() < prob):
+                electron = Particle(label="-", color=RED, mass=-2, radius=0.1)
+                electron.shift(mobj.get_center())
+                electron.set_z_index(2)
+                electron.add_field(self.e_field)
+                self.electrons.append(electron)
+
+                ion = Particle(label="+", color=PURPLE, mass=10)
+                ion.shift(mobj.get_center())
+                ion.set_z_index(1)
+                ion.add_field(self.e_field)
+                self.ions.append(ion)
+
+                self.add(electron)
+                self.add(ion)
 
