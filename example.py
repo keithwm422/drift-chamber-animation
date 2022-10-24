@@ -13,18 +13,26 @@ def make_a_bunch_of_wires(which):
       if which in ['sense', 'Sense', 's', 'S', 'SENSE']:
             for i in range(-5,5):
                   if (i % 2) == 0: # this is even
-                        sense_wire = Circle(radius=0.1).shift(2* LEFT, i*UP)
+                        sense_wire = Circle(radius=0.1).shift(4* LEFT, i*UP)
                   else: # this is odd
-                        sense_wire = Circle(radius=0.1).shift(2.5* LEFT, i*UP)
+                        sense_wire = Circle(radius=0.1).shift(4.5* LEFT, i*UP)
                   sense_wire.set_fill(BLACK, opacity=1.0)
                   listy_objs.append(sense_wire)
       elif which in ['cathode', 'Cathode', 'c', 'C', 'CATHODE']:
             for i in range(-5,5):
-                  cathode_wire = Circle(radius=0.1).shift(2 * RIGHT, i * UP)
+                  cathode_wire = Circle(radius=0.1).shift(4 * RIGHT, i * UP)
                   cathode_wire.set_fill(BLUE, opacity=0.5)
                   listy_objs.append(cathode_wire)
       return listy_objs
 
+# need the electric field to change to a drift field, constant velocity essentially, because of the gas
+# looking at Sauli CERN 1977, drift velocity of electrons! is on the order of 12cm/usec -> Sauli figure 29 shows mixture
+# Argon - CO2. I extrapolate from the 0.6 x axis data point to the HELIX drift field (10000V/(3inches*2.54cm/in)) and divide by 760 mmHG to get to 1.73
+# which is 2.88 times 0.6 x axis point, so assume linear extrap and get 4*2.88 which is 11.5cm/us 
+# for ions its more about mobility: u^{+}=w^{+}/E, for CO2 roughly u^{+}= 1.09 cm^2/(Volt sec)
+# so w^{+}=u^{+} * E where E=10000/(3*2.54)=1312 V/cm as above
+# w^{+}=1430 cm/sec = 1.43cm/millisecond. 
+# 
 class ElectricField:
     def __init__(self):
         self.charges = [
@@ -55,6 +63,7 @@ class Particle(Circle):
         self.v = np.zeros(2)
         self.mass = mass
         self.jitter_size = 0.2
+        self.iter=0
 
     def add_field(self, field: ElectricField):
         self.field = field
@@ -70,9 +79,9 @@ class Particle(Circle):
             jitter_probability = 0*dt
             if (np.random.uniform() < jitter_probability):
                 jitter = self.jitter_size/self.mass*np.append(np.random.uniform(low=-1,size=2))
+                self.iter = self.iter+1
             else:
                 jitter = np.zeros(2)
-
             a = 1/self.mass * self.field.field_at(self.get_center())
             mobj.v = mobj.v + a*dt + jitter
             mobj.shift(np.append(mobj.v * dt,0))
@@ -131,10 +140,12 @@ class CreateVideo(Scene):
             mobj.remove_updater(mobj.update_position)
       else:
             a = np.zeros(3)
+            #print(a)
             mobj.v = mobj.v + a*dt 
             mobj.shift(mobj.v * dt)
             p_particle = 5
             prob = p_particle * dt
+            #print(prob/p_particle)
             if (np.random.uniform() < prob):
                 electron = Particle(label="-", color=RED, mass=-2, radius=0.1)
                 electron.shift(mobj.get_center())
@@ -149,5 +160,6 @@ class CreateVideo(Scene):
                 self.ions.append(ion)
 
                 self.add(electron)
+                #print("iter:",electron.iter)
                 self.add(ion)
 
