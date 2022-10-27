@@ -12,8 +12,28 @@ def MakeWaveform():
       wave = ImageMobject("include/waveform.png")
       wave.scale(1)
       wave.shift(3.5*RIGHT, 2*UP)
-      circle = Circle(color="#87c2a5", fill_opacity=0.1, radius=0.1)
-      return [wave,circle]
+      circle1 = Circle(color="#87c2a5", fill_opacity=0.1, radius=0.1)
+      circle1.shift(1*RIGHT, 0.5*UP)
+      circle2 = Circle(color="#87c2a5", fill_opacity=0.1, radius=0.1)
+      circle2.shift(1*RIGHT, 3.4*UP)
+      #line = Line(circle1.get_center(), circle2.get_center(), fill_opacity=0) # some red line
+      #line.set_color(BLUE)
+      return [wave,circle1,circle2]
+class MovingWindow(Line):
+      def __init__(self,circle1,circle2):
+            super(MovingWindow, self).__init__(circle1.get_center(), circle2.get_center(),color=BLUE)
+            self.v = 1*RIGHT
+      def start(self):
+            self.add_updater(self.update_position)
+      def update_position(self, mobj, dt):
+            # replace with near_wire
+            if(mobj.get_x() > 5):
+                  mobj.v = np.zeros(3)
+                  mobj.remove_updater(mobj.update_position)
+            else:
+                  a = np.zeros(3)
+                  mobj.v = mobj.v + a*dt 
+                  mobj.shift(mobj.v * dt)
 
 def make_a_bunch_of_wires(which):
       listy_objs=[]
@@ -136,6 +156,10 @@ class CreateVideo(Scene):
             for wire in CathodeWires: self.add(wire)
             waveform=MakeWaveform()
             for obj in waveform: self.add(obj)
+            window = MovingWindow(waveform[1],waveform[2])
+            window.add_updater(self.update_window)
+            self.dts_propped_window=0
+            self.add(window)
             self.wait()
             # run cosmic ray particle event
             be10 = EventParticle().set_z_index(3)
@@ -169,7 +193,7 @@ class CreateVideo(Scene):
                   #for i in range (0,1): 
                   #if(self.dts_propped % 4 == 0):
                   #if((mobj.get_y() <= 2.1 and mobj.get_y() >= 1.9) or mobj.get_y() == 1 or mobj.get_y() == 0 or mobj.get_y() == -1 or mobj.get_y() == -2 or mobj.get_y() == -3):
-                  if((mobj.get_y() <= 0.1 and mobj.get_y() >= -0.1) or (mobj.get_y() <= -0.9 and mobj.get_y() >= -1.1) or (mobj.get_y() <= -1.9 and mobj.get_y() >= -2.1)):
+                  if((mobj.get_y() <= 0.1 and mobj.get_y() >= -0.1) or (mobj.get_y() <= -0.9 and mobj.get_y() >= -1.1) or (mobj.get_y() <= -1.9 and mobj.get_y() >= -2.1) or (mobj.get_y() <= -2.9 and mobj.get_y() >= -3.1)):
                         sample.append(self.dts_propped)
                         print(sample)
                   #if (sample < prob):
@@ -188,3 +212,14 @@ class CreateVideo(Scene):
                         self.ions.append(ion)
                         self.add(electron)
                         self.add(ion)
+      def update_window(self, mobj, dt):
+            if(mobj.get_x() > 6):
+                  mobj.v = np.zeros(3)
+                  mobj.remove_updater(mobj.update_position)
+            else:
+                  self.dts_propped_window+=1
+                  if(self.dts_propped_window>30):
+                        a = np.zeros(3)
+                        #print(a)
+                        mobj.v = mobj.v + a*dt 
+                        mobj.shift(mobj.v * dt)
