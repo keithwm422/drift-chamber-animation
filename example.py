@@ -8,18 +8,25 @@ class ChargeSource:
       charge: float
       position: np.array
 
+def MakeWaveform():
+      wave = ImageMobject("include/waveform.png")
+      wave.scale(1)
+      wave.shift(3.5*RIGHT, 2*UP)
+      circle = Circle(color="#87c2a5", fill_opacity=0.1, radius=0.1)
+      return [wave,circle]
+
 def make_a_bunch_of_wires(which):
       listy_objs=[]
       if which in ['sense', 'Sense', 's', 'S', 'SENSE']:
-            for i in range(-2,2):
+            for i in range(-3,1):
                   if (i % 2) == 0: # this is even
-                        sense_wire = Circle(radius=0.1).shift(4* LEFT, 2*i*UP)
+                        sense_wire = Circle(radius=0.1).shift(4* LEFT, i*UP)
                   else: # this is odd
-                        sense_wire = Circle(radius=0.1).shift(4.5* LEFT, 2*i*UP)
+                        sense_wire = Circle(radius=0.1).shift(4.5* LEFT, i*UP)
                   sense_wire.set_fill(BLACK, opacity=1.0)
                   listy_objs.append(sense_wire)
       elif which in ['cathode', 'Cathode', 'c', 'C', 'CATHODE']:
-            for i in range(-5,5):
+            for i in range(-5,3):
                   cathode_wire = Circle(radius=0.1).shift(4 * RIGHT, i * UP)
                   cathode_wire.set_fill(BLUE, opacity=0.5)
                   listy_objs.append(cathode_wire)
@@ -127,6 +134,8 @@ class CreateVideo(Scene):
             CathodeWires=make_a_bunch_of_wires('Cathode')
             for wire in SenseWires: self.add(wire)
             for wire in CathodeWires: self.add(wire)
+            waveform=MakeWaveform()
+            for obj in waveform: self.add(obj)
             self.wait()
             # run cosmic ray particle event
             be10 = EventParticle().set_z_index(3)
@@ -160,7 +169,7 @@ class CreateVideo(Scene):
                   #for i in range (0,1): 
                   #if(self.dts_propped % 4 == 0):
                   #if((mobj.get_y() <= 2.1 and mobj.get_y() >= 1.9) or mobj.get_y() == 1 or mobj.get_y() == 0 or mobj.get_y() == -1 or mobj.get_y() == -2 or mobj.get_y() == -3):
-                  if((mobj.get_y() <= 2.1 and mobj.get_y() >= 1.9) or (mobj.get_y() <= 0.1 and mobj.get_y() >= -0.1) or (mobj.get_y() <= -1.9 and mobj.get_y() >= -2.1)):
+                  if((mobj.get_y() <= 0.1 and mobj.get_y() >= -0.1) or (mobj.get_y() <= -0.9 and mobj.get_y() >= -1.1) or (mobj.get_y() <= -1.9 and mobj.get_y() >= -2.1)):
                         sample.append(self.dts_propped)
                         print(sample)
                   #if (sample < prob):
