@@ -139,7 +139,7 @@ class Particle(Circle):
             self.add_updater(self.drift_update_position)
       def drift_update_position(self, mobj, dt):
             a = np.zeros(2)
-            drift_ve=-2 # for electrons
+            drift_ve=-4 # for electrons
             drift_vi=0.5 # for ions
             if(self.charge==-1):
                   mobj.v = np.array([drift_ve,0], np.float64) + a*dt
@@ -147,8 +147,9 @@ class Particle(Circle):
                   mobj.v = np.array([drift_vi,0], np.float64) + a*dt 
             mobj.shift(np.append(mobj.v * dt,0))
 class EventParticle(Particle):
-      def __init__(self):
-            super(EventParticle, self).__init__(label="Be", color=BLUE)
+      def __init__(self, radius):
+            super(EventParticle, self).__init__(radius=radius,label="Be", color=BLUE)
+            self.radius=radius
             self.v = 5*DOWN
             self.shift(4*UP)
       def start(self):
@@ -181,13 +182,13 @@ class CreateVideo(Scene):
             self.add(window)
             self.wait()
             # run cosmic ray particle event
-            be10 = EventParticle().set_z_index(3)
+            be10 = EventParticle(radius=0.3).set_z_index(3)
             self.electrons = []
             self.ions = []
             self.dts_propped=0
             be10.add_updater(self.update_be)
             self.add(be10)
-            TIME=12
+            TIME=10
             self.wait(TIME)
       def update_be(self, mobj, dt):
             # this code should execute at each dt, and since we give the Be-10 nucleus a velocity, no acceleration, and the same starting point
@@ -237,7 +238,7 @@ class CreateVideo(Scene):
                   mobj.remove_updater(mobj.update_position)
             else:
                   self.dts_propped_window+=1
-                  if(self.dts_propped_window>30):
+                  if(self.dts_propped_window>27):
                         a = np.zeros(3)
                         #print(a)
                         mobj.v = mobj.v + a*dt 
