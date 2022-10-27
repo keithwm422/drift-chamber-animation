@@ -37,13 +37,15 @@ class Vid(Scene):
             window = MovingWindow(waveform[1],waveform[2])
             window.add_updater(self.update_window)
             self.add(window)
+            self.dts_propped=0
             TIME=12
             self.wait(TIME)
       def update_window(self, mobj, dt):
+            self.dts_propped+=1
             if(mobj.get_x() > 6):
                   mobj.v = np.zeros(3)
                   mobj.remove_updater(mobj.update_position)
-            else:
+            elif(self.dts_propped>100):
                   a = np.zeros(3)
                   #print(a)
                   mobj.v = mobj.v + a*dt 

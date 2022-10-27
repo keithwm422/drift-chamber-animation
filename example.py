@@ -34,7 +34,24 @@ class MovingWindow(Line):
                   a = np.zeros(3)
                   mobj.v = mobj.v + a*dt 
                   mobj.shift(mobj.v * dt)
-
+def MakeFieldDrawing():
+      arrow = Arrow([-4,3,0], [-2, 3, 0], buff=0)
+      drift_text = Text('Electric/Drift Field',font_size=20).next_to(arrow, DOWN)
+      circ = Circle(color="#87c2a5", fill_opacity=0.1, radius=0.1)
+      circ.shift(5*LEFT,0*UP,0)
+      circ2 = Circle(color="#87c2a5", fill_opacity=0.1, radius=0.1)
+      circ2.shift(5*LEFT,-3*UP,0)
+      line = Line(circ.get_center(), circ2.get_center()).set_color(WHITE)
+      b1 = Brace(line,direction=line.copy().rotate(-PI/2).get_unit_vector()).set_color(WHITE)
+      b1text = b1.get_text("0 V")
+      sense_text = Text('Sense wires',font_size=16).next_to(circ, LEFT)
+      circ.shift(10*RIGHT,0*UP,0)
+      circ2.shift(10*RIGHT,0*UP,0)
+      line2 = Line(circ.get_center(), circ2.get_center()).set_color(WHITE)
+      b2 = Brace(line2,direction=line2.copy().rotate(PI/2).get_unit_vector()).set_color(WHITE)
+      b2text = b2.get_text("-10 kV")
+      cathode_text = Text('Cathode wires',font_size=16).next_to(circ, RIGHT)
+      return [arrow,drift_text,sense_text,cathode_text,b1,b2,b1text,b2text]
 def make_a_bunch_of_wires(which):
       listy_objs=[]
       if which in ['sense', 'Sense', 's', 'S', 'SENSE']:
@@ -150,6 +167,8 @@ class CreateVideo(Scene):
       def construct(self):
             self.e_field = ElectricField()
             # constuct detector
+            arrows=MakeFieldDrawing()
+            for obj in arrows: self.add(obj)
             SenseWires=make_a_bunch_of_wires('Sense')
             CathodeWires=make_a_bunch_of_wires('Cathode')
             for wire in SenseWires: self.add(wire)
