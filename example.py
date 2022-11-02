@@ -22,7 +22,7 @@ def MakeWaveform():
 class MovingWindow(Line):
       def __init__(self,circle1,circle2):
             super(MovingWindow, self).__init__(circle1.get_center(), circle2.get_center(),color=BLUE)
-            self.v = 1*RIGHT
+            self.v = 0.5*RIGHT
       def start(self):
             self.add_updater(self.update_position)
       def update_position(self, mobj, dt):
@@ -108,49 +108,53 @@ class Particle(Circle):
             self.jitter_size = 0.2
             self.iter=0
             self.charge=charge
+            self.needs_removed=False
       def add_efield(self, efield: ElectricField):
             self.efield = efield
             self.add_updater(self.electric_update_position)
       def electric_update_position(self, mobj, dt):
             # replace with if near wire...
-            #if(mobj.get_x() < -10 or mobj.get_x() > 10 
-                #or mobj.near_wire()):
-            #mobj.v = np.zeros(2)
-            #mobj.remove_updater(mobj.update_position) # this stops the updating if its near a wire...
-            #else:
-            jitter_probability = 0*dt
-            if (np.random.uniform() < jitter_probability):
-                  jitter = self.charge*self.jitter_size/self.mass*np.append(np.random.uniform(low=-1,size=2))
-                  self.iter = self.iter+1
+            if(mobj.near_wire(mobj,dt)):
+                  mobj.v = np.zeros(2)
+                  mobj.remove_updater(mobj.electric_update_position) # this stops the updating if its near a wire...
             else:
-                  jitter = np.zeros(2)
-            a = 1/self.mass * self.efield.field_at(self.get_center()) * self.charge
-            mobj.v = mobj.v + a*dt + jitter
-            mobj.shift(np.append(mobj.v * dt,0))
-      def near_wire(self):
-            thresh = 0.2
-            for x, y in [(-2,0), (2,0)]:
-                  dx = np.abs(self.get_x() - x)
-                  dy = np.abs(self.get_y() - y)
-                  if (dx < thresh and dy < thresh):
-                        return True
+                  jitter_probability = 0*dt
+                  if (np.random.uniform() < jitter_probability):
+                        jitter = self.charge*self.jitter_size/self.mass*np.append(np.random.uniform(low=-1,size=2))
+                        self.iter = self.iter+1
+                  else:
+                        jitter = np.zeros(2)
+                  a = 1/self.mass * self.efield.field_at(self.get_center()) * self.charge
+                  mobj.v = mobj.v + a*dt + jitter
+                  mobj.shift(np.append(mobj.v * dt,0))
+      def near_wire(self,mobj,dt):
+            if (mobj.get_x().any() < 4*LEFT):
+                  return True
             return False
       def add_drift_velocity(self):
             self.add_updater(self.drift_update_position)
       def drift_update_position(self, mobj, dt):
             a = np.zeros(2)
-            drift_ve=-4 # for electrons
-            drift_vi=0.5 # for ions
-            if(self.charge==-1):
-                  mobj.v = np.array([drift_ve,0], np.float64) + a*dt
-            elif(self.charge==+1):
-                  mobj.v = np.array([drift_vi,0], np.float64) + a*dt 
-            mobj.shift(np.append(mobj.v * dt,0))
+            # replace with if near wire...
+            #if(self.near_wire(mobj,dt)):
+            if(mobj.get_x() < -5 or mobj.get_x() > 5):
+                  mobj.v = np.array([100000,0], np.float64) + a*dt
+                  mobj.shift(np.append(mobj.v * dt,0))
+                  #mobj.remove_updater(mobj.drift_update_position) # this stops the updating if its near a wire...
+                  self.needs_removed=True
+            else:
+                  drift_ve=-4 # for electrons
+                  drift_vi=0.5 # for ions
+                  if(self.charge==-1):
+                        mobj.v = np.array([drift_ve,0], np.float64) + a*dt
+                  elif(self.charge==+1):
+                        mobj.v = np.array([drift_vi,0], np.float64) + a*dt 
+                  mobj.shift(np.append(mobj.v * dt,0))
 class EventParticle(Particle):
       def __init__(self, radius):
             super(EventParticle, self).__init__(radius=radius,label="Be", color=BLUE)
             self.radius=radius
-            self.v = 5*DOWN
+            self.v = 5*DOWN + 1*LEFT
             self.shift(4*UP)
       def start(self):
             self.add_updater(self.update_position)
@@ -175,7 +179,8 @@ class CreateVideo(Scene):
             for wire in SenseWires: self.add(wire)
             for wire in CathodeWires: self.add(wire)
             waveform=MakeWaveform()
-            for obj in waveform: self.add(obj)
+            #for obj in waveform: self.add(obj)
+            self.add(waveform[0])
             window = MovingWindow(waveform[1],waveform[2])
             window.add_updater(self.update_window)
             self.dts_propped_window=0
@@ -238,7 +243,7 @@ class CreateVideo(Scene):
                   mobj.remove_updater(mobj.update_position)
             else:
                   self.dts_propped_window+=1
-                  if(self.dts_propped_window>27):
+                  if(self.dts_propped_window>15):
                         a = np.zeros(3)
                         #print(a)
                         mobj.v = mobj.v + a*dt 
